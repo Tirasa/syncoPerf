@@ -33,6 +33,10 @@
 
   <properties>
     <syncope.version>2.1.3-SNAPSHOT</syncope.version>
+    <openjpa.version>3.0.1-SNAPSHOT</openjpa.version>
+
+    <docker.mysql.version>8.0</docker.mysql.version>
+    <jdbc.mysql.version>8.0.13</jdbc.mysql.version>
 
     <bulk.load.users>1000</bulk.load.users>
 
@@ -755,6 +759,140 @@
           </testResource>
           <testResource>
             <directory>src/main/resources/mariadb/domains</directory>
+            <targetPath>${project.build.directory}/test-classes/domains</targetPath>
+            <filtering>true</filtering>
+          </testResource>
+        </testResources>
+      </build>
+    </profile>
+
+    <profile>
+      <id>mysql</id>
+
+      <properties>
+        <jdbcdriver.groupId>mysql</jdbcdriver.groupId>
+        <jdbcdriver.artifactId>mysql-connector-java</jdbcdriver.artifactId>
+      </properties>
+
+      <dependencies>
+        <dependency>
+          <groupId>mysql</groupId>
+          <artifactId>mysql-connector-java</artifactId>
+          <version>${jdbc.mysql.version}</version>
+          <scope>test</scope>
+        </dependency>
+      </dependencies>
+
+      <build>
+        <defaultGoal>clean verify</defaultGoal>
+
+        <plugins>
+          <plugin>
+            <groupId>io.fabric8</groupId>
+            <artifactId>docker-maven-plugin</artifactId>
+            <configuration>
+              <images>
+                <image>
+                  <name>docker.elastic.co/elasticsearch/elasticsearch:${elasticsearch.version}</name>
+                  <run>
+                    <env>
+                      <discovery.type>single-node</discovery.type>
+                      <cluster.name>elasticsearch</cluster.name>
+                      <xpack.security.enabled>false</xpack.security.enabled>
+                    </env>
+                    <ports>
+                      <port>9200:9200</port>
+                      <port>9300:9300</port>
+                    </ports>
+                  </run>
+                </image>
+                <image>
+                  <name>mysql:${docker.mysql.version}</name>
+                  <run>
+                    <env>
+                      <MYSQL_ROOT_PASSWORD>password</MYSQL_ROOT_PASSWORD>
+                      <MYSQL_DATABASE>syncope</MYSQL_DATABASE>
+                      <MYSQL_USER>syncope</MYSQL_USER>
+                      <MYSQL_PASSWORD>syncope</MYSQL_PASSWORD>
+                    </env>
+                    <ports>
+                      <port>3306:3306</port>
+                    </ports>
+                    <wait>
+                      <log>MySQL init process done. Ready for start up.</log>
+                      <time>30000</time>
+                    </wait>
+                  </run>
+                </image>
+              </images>
+            </configuration>
+            <executions>
+              <execution>
+                <id>start-mysql</id>
+                <phase>pre-integration-test</phase>
+                <goals>
+                  <goal>start</goal>
+                </goals>
+              </execution>
+              <execution>
+                <id>stop-mysql</id>
+                <phase>post-integration-test</phase>
+                <goals>
+                  <goal>stop</goal>
+                  <goal>remove</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+
+          <plugin>
+            <groupId>org.codehaus.cargo</groupId>
+            <artifactId>cargo-maven2-plugin</artifactId>
+            <inherited>true</inherited>
+            <executions>
+              <execution>
+                <id>start-container</id>
+                <phase>pre-integration-test</phase>
+                <goals>
+                  <goal>start</goal>
+                </goals>
+              </execution>
+              <execution>
+                <id>stop-container</id>
+                <phase>post-integration-test</phase>
+                <goals>
+                  <goal>stop</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+
+        <resources>
+          <resource>
+            <directory>src/main/resources</directory>
+            <filtering>true</filtering>
+            <excludes>
+              <exclude>persistence.properties</exclude>
+              <exclude>provisioning.properties</exclude>
+            </excludes>
+          </resource>
+          <resource>
+            <directory>src/main/resources/mysql</directory>
+            <filtering>true</filtering>
+          </resource>
+        </resources>
+        <testResources>
+          <testResource>
+            <directory>src/main/resources/mysql</directory>
+            <filtering>true</filtering>
+            <includes>
+              <include>persistence.properties</include>
+              <include>provisioning.properties</include>
+            </includes>    
+          </testResource>
+          <testResource>
+            <directory>src/main/resources/mysql/domains</directory>
             <targetPath>${project.build.directory}/test-classes/domains</targetPath>
             <filtering>true</filtering>
           </testResource>
