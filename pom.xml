@@ -807,9 +807,9 @@
                   </run>
                 </image>
                 <image>
-                  <name>mysql:${docker.mysql.version}</name>
+                  <name>mysql/mysql-server:${docker.mysql.version}</name>
                   <run>
-                    <cmd>--skip-log-bin --server-id=1 --innodb-dedicated-server=true</cmd>
+                    <cmd>--skip-log-bin --server-id=1</cmd>
                     <env>
                       <MYSQL_ROOT_PASSWORD>password</MYSQL_ROOT_PASSWORD>
                       <MYSQL_DATABASE>syncope</MYSQL_DATABASE>
